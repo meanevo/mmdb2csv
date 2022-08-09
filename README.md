@@ -10,8 +10,10 @@ Many applications support CSV but not mmdb.  For example it's easy to import CSV
 
 # How?
 
-./mmdb2csv GeoIP2ISP.mmdb > isp.csv
-
-# Build
-go build mmdb2csv.go
+1. Build `go build mmdb2csv.go`
+2. Update [database](https://github.com/P3TERX/GeoLite.mmdb)
+3. Run
+   * `./mmdb2csv GeoLite2-ASN.mmdb 4809`
+   * `./mmdb2csv GeoLite2-City.mmdb Taipei`
+   * `./mmdb2csv GeoLite2-Country.mmdb TW`
 

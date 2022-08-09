@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"strconv"
 
 	"github.com/oschwald/geoip2-golang"
 	"github.com/oschwald/maxminddb-golang"
@@ -26,7 +27,7 @@ func removeUnsafeChars(strarr []string) []string {
 	return output
 }
 
-func dumpCity(networks *maxminddb.Networks, writer *csv.Writer) (err error) {
+func dumpCity(networks *maxminddb.Networks, cityName string, writer *csv.Writer) (err error) {
 	headers := []string{
 		"prefix",
 		"city_geoname_id",
@@ -78,6 +79,9 @@ func dumpCity(networks *maxminddb.Networks, writer *csv.Writer) (err error) {
 		subnet, err := networks.Network(&record)
 		if err != nil {
 			log.Fatalln(err)
+		}
+		if (cityName != "" && record.City.Names["en"] != cityName) {
+			continue;
 		}
 		values := []string{
 			subnet.String(),
@@ -172,7 +176,7 @@ func dumpConnections(networks *maxminddb.Networks, writer *csv.Writer) (err erro
 	return nil
 }
 
-func dumpCountry(networks *maxminddb.Networks, writer *csv.Writer) (err error) {
+func dumpCountry(networks *maxminddb.Networks, isoCode string, writer *csv.Writer) (err error) {
 	headers := []string{
 		"prefix",
 		"continent_code",
@@ -206,6 +210,9 @@ func dumpCountry(networks *maxminddb.Networks, writer *csv.Writer) (err error) {
 		subnet, err := networks.Network(&record)
 		if err != nil {
 			log.Fatalln(err)
+		}
+		if (isoCode != "" && record.Country.IsoCode != isoCode) {
+			continue;
 		}
 		values := []string{
 			subnet.String(),
@@ -243,7 +250,7 @@ func dumpCountry(networks *maxminddb.Networks, writer *csv.Writer) (err error) {
 	return nil
 }
 
-func dumpISP(networks *maxminddb.Networks, writer *csv.Writer) (err error) {
+func dumpISP(networks *maxminddb.Networks, asn string, writer *csv.Writer) (err error) {
 	headers := []string{
 		"prefix",
 		"autonomous_system_number",
@@ -261,6 +268,13 @@ func dumpISP(networks *maxminddb.Networks, writer *csv.Writer) (err error) {
 		subnet, err := networks.Network(&record)
 		if err != nil {
 			log.Fatalln(err)
+		}
+		asn64, err := strconv.ParseUint(asn, 10, 32)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if (asn != "" && record.AutonomousSystemNumber != uint(asn64)) {
+			continue;
 		}
 		values := []string{
 			subnet.String(),
@@ -291,6 +305,10 @@ func main() {
 
 	fullPath := flag.Args()[0]
 	fname := path.Base(fullPath)
+	extraArg := ""
+	if (flag.NArg() > 1) {
+		extraArg = flag.Args()[1]
+	}
 
 	// open mmdb
 	db, err := maxminddb.Open(fullPath)
@@ -315,14 +333,14 @@ func main() {
 	}
 	var err2 error
 	switch fname {
-	case "GeoIP2City.mmdb":
-		err2 = dumpCity(networks, writer)
-	case "GeoIP2Connections.mmdb":
-		err2 = dumpConnections(networks, writer)
-	case "GeoIP2Country.mmdb":
-		err2 = dumpCountry(networks, writer)
-	case "GeoIP2ISP.mmdb":
-		err2 = dumpISP(networks, writer)
+	case "GeoLite2-City.mmdb":
+		err2 = dumpCity(networks, extraArg, writer)
+	// case "GeoIP2Connections.mmdb":
+	// 	err2 = dumpConnections(networks, writer)
+	case "GeoLite2-Country.mmdb":
+		err2 = dumpCountry(networks, extraArg, writer)
+	case "GeoLite2-ASN.mmdb":
+		err2 = dumpISP(networks, extraArg, writer)
 	}
 	if err2 != nil {
 		log.Fatal(err2.Error())
